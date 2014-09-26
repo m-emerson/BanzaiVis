@@ -1,0 +1,9 @@
+g.axis path, g.axis line {
+  fill: none;
+  shape-rendering: crispEdges;
+}
+
+g.axis text {
+  font-family: san-serif;
+  font-size: 8px;
+}

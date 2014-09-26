@@ -1,0 +1,139 @@
+{% extends "main.html" %}
+{% block head %}
+<link rel="stylesheet" type="text/css" href="../static/css/barchart.css">
+<link rel="stylesheet" type="text/css" href="../static/css/heatmap.css">
+<link rel="stylesheet" type="text/css" href="../static/css/custom.css">
+<script src="../static/js/select_functions.js" type="text/javascript"></script>
+<script src="../static/js/d3.v3.min.js" type="text/javascript"></script>
+<script src="../static/js/snp_bar_chart.js" type="text/javascript"></script>
+<script src="../static/js/Biojs.js" type="text/javascript"></script>
+<script src="../static/js/Biojs.Tooltip.js" type="text/javascript"></script>
+<script src="../static/js/Biojs.Sequence.js" type="text/javascript"></script>
+{% endblock %}
+{% block navigation %}
+<a class="blog-nav-item active">Variance Reports</a>
+<!---<a class="blog-nav-item" href="kraken">Kraken Reports</a>-->
+{% endblock %}
+
+{% block title %}
+Variance Reports
+{% endblock %}
+
+{% block subtitle %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+<!-- Navigation tabs -->
+<ul class="nav nav-pills">
+    <li class="active"><a href="#strain-tab" data-toggle="tab">By Strain</a></li>
+</ul>
+
+<div class="row-fluid">
+  <div class="tab-content">
+    <!--- By Strain tab pane -->
+    <div class="tab-pane active" id="strain-tab">
+      <div id="strain-info" class="panel panel-default">
+        <div class="panel-body">
+          <div class="input-group">
+            <span class="input-group-addon">Strains</span> 
+            <input id="strains" name="strains"></input>
+          </div>
+
+          <!-- Loading gif -->
+          <div id="loading-snp" style="display: none;">
+            <center><p><img src="../static/img/loader.gif"> </p></center>
+          </div>
+
+          <!-- Raw Strain Information -->
+          <div id="raw-strain-info" class="well well-sm" style="display: none;">
+             <div id="raw-strain-info-table"></div>
+               <!--<button type="button" class="btn btn-default btn-md" style="float: right;">
+                 <span class="glyphicon glyphicon-floppy-disk"></span>Download strain report
+               </button> -->
+             </center>
+          </div>
+
+          <div id="header"></div>
+          <!-- Bar chart drawing div -->
+          <div id="graph"></div>
+          <!-- Loading div -->
+          <div id="locus_load" style="display: none;">
+            <center><p><img src="../static/img/loader.gif"></p></center> 
+          </div>
+          <!-- Bio JS and annotations -->
+          <div class="row" id="seq_info"></div>
+          <!-- SNP Data Table -->
+          <div id="table"></div>
+          
+    
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab pane 2
+    <div class="tab-pane" id="keyword-tab" data-toggle="tab">
+      <div id="keyword-info" class="panel panel-default">
+        <div class="panel-body">
+          <div class="input-group">
+            <span class="input-group-addon">Search by Keyword</span>
+            <input class="form-control" type="text" placeholder="e.g. transport protein" id="keyword" style="width:80%;">
+            <button type="submit" id="keyword_submit" class="btn btn-default" style="width:20%">Submit</button>
+          </div>
+          <div id="heatmap"></div>
+          <div id="loading-snp-keyword" style="display: none;">
+            <center><p>Loading SNP Data ... <img src="../static/img/loader.gif"> </p></center>
+          </div>
+        <div class="alert alert-danger" id="keyword_error" style="display: none;">Error: No keyword selected</div>
+        <div class="col-sm-10" id="keyword_table"></div>
+        </div>
+      </div>
+    </div>
+  -->
+  </div>
+</div>
+<!--- <div class="row" id="inputs">
+  <div class="col-lg-9">
+  <div class="tab-content">
+  <form class="form-horizontal" role="form">
+    <div class="tab-pane" id="inputs">
+      <label for="strains" class="col-sm-2 control-label">Strains</label>
+      <div class="col-sm-10">
+        <input id="strains" name="strains"></input>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="loci" class="col-sm-2 control-label">Loci</label>
+      <div class="col-sm-10">
+        <input id="loci" name="loci"></input>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="loci" class="col-sm-2 control-label">Search Product by Keyword</label>
+      <div class="col-sm-10">
+        <input id="keyword" name="Keyword"></input>
+      </div>
+    </div>
+    <div class="col-sm-10" id="keyword_table"></div>
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sml-10">
+          <a class="btn btn-primary btn-large" id="submit">Submit</a> 
+       </div>
+    </div>
+  </form>
+  <div id="loading" style="display: none;">
+    <br>
+    <center>Loading variance data ... <img src="../static/img/loader.gif"> </center>
+  </div>
+  <div id="bar_chart"></div>
+  <div id="loading-locus" style="display: none;">
+     <center>Loading locus data ... <img src="../static/img/loader.gif"> </center>
+  </div>
+  <div id="table"></div>
+  </div>
+  <div class="tab-pane" id="test">TEST</div>
+  </div>
+</div> -->
+</div>
+{% endblock %}
+

@@ -1,0 +1,389 @@
+// Table headings in the order they should be displayed
+var headings = ["StrainID", "Position", "RefBase", "ChangeBase", "ChangeAA", "Class", "SubClass"]
+
+// Global to determine if a bar has been clicked
+var clickedBar = null;
+
+/* Adds a selection box for sorting the bar chart data */
+function add_sort_bar() {
+	html = '</br>'
+	html += '<div class="btn-group">';
+	html += '<button class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown">';
+	html += 'Sort Results <span class="caret"></span>';
+	html += '</button>';	
+	html += '<ul class="dropdown-menu">';
+	html += '<li><a href="#">Locus</a></li>';
+	html += '<li><a href="#">SNPs</a></li>';
+	html += '<li><a href="#">Deletions</a></li>';
+	html += '<li><a href="#">Insertions</a></li>';
+	html += '<li><a href="#">Substitutions</a></li>';
+	html += '</ul>';
+	html += '</div>';
+
+	$("#bar_chart").html(html);
+}
+
+function draw_snp_stacked_bar_chart(data) {
+	add_sort_bar();
+    var margin = {top: 20, right: 20, bottom: 30, left: 40},
+        width = 960 - margin.left - margin.right,
+        height = 500 - margin.top - margin.bottom;
+
+    var xMax = data[0].values.length;
+    console.log("xmax!!! " + xMax);
+
+    /*if (width > xMax) {
+        xMax = width;
+    } */
+
+    range = [];
+    for (var i=0; i < xMax; i++) {
+        range.push(i);
+    }
+    console.log("range: " + range);
+
+    var x = d3.scale.ordinal()
+        .domain(data[0].values.map(function(d) { return d.x }))
+        .range(range);
+    //    .rangeRoundBands([0, xMax], .01);
+
+    console.log(x.rangeExtent());
+    console.log(x.rangeBand());
+
+    var y = d3.scale.linear()
+        .rangeRound([height, 0]);
+
+var zoom = d3.behavior.zoom()
+    .scaleExtent([1, 1])
+    .on("zoom", zoomed);
+
+    var color = d3.scale.ordinal()
+        .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"]);
+
+    var xAxis = d3.svg.axis()
+        .scale(x)
+        .orient("bottom");
+
+    var yAxis = d3.svg.axis()
+        .scale(y)
+        .orient("left")
+        .tickFormat(d3.format(".2s"));
+
+	var svg = d3.select("#bar_chart").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+        .call(zoom);
+
+    var layers = d3.layout.stack()
+        .values(function(d) { return d.values; })(data);
+    
+    var yStackMax = d3.max(layers, function(layer) {
+        return d3.max(layer.values, function(d) { return d.y0 + d.y; }); });
+
+    x.domain(layers[0].values.map(function(d) { return d.x; }));
+    y.domain([0, yStackMax]);
+
+    /* Background rectangle (so we can click and drag to pan */
+    var bg = svg.append("rect")
+        .attr("width", width)
+        .attr("height", height)
+        .style("fill", "none")
+        .style("pointer-events", "all");
+
+    var container = svg.append("g");
+	container.append("g")
+		.attr("class", "x axis")
+		.attr("transform", "translate(0," + height + ")")
+		.call(xAxis)
+		.selectAll("text")
+			.style("text-anchor", "end")
+			.attr("dx", "-.8em")
+			.attr("dy", "-.5em")
+			.attr("transform", function(d) {
+				return "rotate(-90)"
+			});
+
+    container.append("g")
+        .attr("class", "y axis")
+        .call(yAxis)
+        .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 6)
+        .attr("dy", ".71em")
+        .style("text-anchor", "end")
+        .text("Count");
+
+    var snpClass = container.selectAll(".snpClass")
+        .data(layers)
+        .enter().append("g")
+        .attr("class", "layer")
+        .style("fill", function(d) { return color(d.class); });
+
+    var rect = snpClass.selectAll("rect")
+        .data(function(d) { return d.values; })
+        .enter().append("rect")
+        .attr("x", function(d) { return x(d.x) })
+        .attr("y", height)
+        .attr("width", x.rangeBand())
+        .attr("height", 0);
+
+    rect.transition()
+        .delay(10)
+        .attr("y", function(d) { return y(d.y0 + d.y); })
+        .attr("height", function(d) { return y(d.y0) - y(d.y0 + d.y); });
+
+    var legend = container.selectAll(".legend")
+        .data(color.domain().slice().reverse())
+        .enter().append("g")
+            .attr("class", "legend")
+            .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+    legend.append("rect")
+        .attr("x", width - 18)
+        .attr("width", 18)
+        .attr("height", 18)
+        .style("fill", color);
+
+    legend.append("text")
+        .attr("x", width - 24)
+        .attr("y", 9)
+        .attr("dy", ".35em")
+        .style("text-anchor", "end")
+        .text(function(d) { return d; });
+
+	$(".dropdown-menu li a").click(sort);
+
+function zoomed() {
+    svg.attr("transform", "translate(" + d3.event.translate[0] + ", 1)"); // Only transform along the x axis
+}
+
+    function dragstarted(d) {
+        d3.event.sourceEvent.stopPropagation();
+        d3.select(this).classed("dragging", true);
+    }
+
+    function dragged(d) {
+        d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
+    }
+
+    function dragended(d) {
+        d3.select(this).classed("dragging", false);
+    }
+
+    function sort() {
+		sort_by = $(this).text();
+        if (sort_by == "SNPs") {
+            // Count the totals 
+            var snpArr = {};
+            for (i=0; i < layers.length; i++) {
+                for (j = 0; j < layers[i].values.length; j++) {
+                    // TODO
+                    /* We need to sort the data in a dictionary according to Locus=>class: snps:
+                    That way we can sort according to whatever class we want */
+                }
+            }
+            console.log(snpArr);
+        }
+    }
+}
+
+function draw_vis(data) {
+	add_sort_bar();
+
+	var margin = {top: 20, right: 20, bottom: 80, left: 40},
+		width = 960 - margin.left - margin.right,
+		height = 500 - margin.top - margin.bottom;
+
+	var x = d3.scale.ordinal()
+		.rangeRoundBands([0, width], .1);
+
+	var y = d3.scale.linear()
+		.range([height, 0]);
+
+	var xAxis = d3.svg.axis()
+		.scale(x)
+		.orient("bottom");
+
+	var yAxis = d3.svg.axis()
+		.scale(y)
+		.orient("left")
+
+	var svg = d3.select("#bar_chart").append("svg")
+		.attr("width", width + margin.left + margin.right)
+		.attr("height", height + margin.top + margin.bottom)
+		.append("g")
+		.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+	x.domain(data.map(function(d) { return d.group; }));
+	y.domain([0, d3.max(data, function(d) { return d.reduction; })]);
+
+	svg.append("g")
+		.attr("class", "x axis")
+		.attr("transform", "translate(0," + height + ")")
+		.call(xAxis)
+		.selectAll("text")
+			.style("text-anchor", "end")
+			.attr("dx", "-.8em")
+			.attr("dy", "-.5em")
+			.attr("transform", function(d) {
+				return "rotate(-90)"
+			});
+
+	svg.append("g")
+	.attr("class", "y axis")
+	.call(yAxis)
+	.append("text")
+		.attr("transform", "rotate(-90)")
+		.attr("y", 6)
+		.attr("dy", ".71em")
+		.style("text-anchor", "end")
+		.text("SNPs" );
+
+	bar = svg.selectAll(".bar")
+		.data(data)
+		.enter().append("rect")
+			.attr("class", "bar")
+			.attr("x", function(d) { return x(d.group); })
+			.attr("width", x.rangeBand())
+			.attr("y", function(d) { return y(d.reduction); })
+			.attr("height", function(d) { return height - y(d.reduction); })
+			.on('click', click)
+			.on('mouseover', hover_on)
+			.on('mouseout', hover_off);
+
+	$(".dropdown-menu li a").click(sort);
+
+
+	function hover_on(d) {
+		if (clickedBar != (this)) {
+			d3.select(this).style('fill', '#800000');
+		}
+	}
+	
+	function hover_off(d) {
+		if (clickedBar != (this)) {
+			d3.select(this).style('fill', '#236B8E');
+		}
+	}
+
+	// On bar chart click -- populate the data table
+  	function click(d) {
+		if (clickedBar != null) {
+			d3.select(clickedBar).style('fill', '#236B8E');
+		}
+
+		d3.select(this).style('fill', '#802A2A');
+		clickedBar = (this);
+		
+		var strains_selection = ( JSON.stringify($("#strains").select2("val")) );
+
+		$("#loading-locus").show();
+        	$.getJSON('/_get_locus_details', {
+                	LocusTag: d.group, StrainID: strains_selection 
+        	}, function(r) {
+                	// Create the data table
+                	write_snp_details(r);
+			$("#loading-locus").hide();
+                	// Jump to the table
+                	window.location.hash = '#table'
+        	});
+  	}
+
+	// Sort the bar graph
+	function sort() {
+		sort_by = $(this).text();
+		x0 = x.domain(data.sort(function(a, b) {
+			if (sort_by == "SNPs") {
+				return (b.reduction - a.reduction);
+			} else {
+				return d3.ascending(a.group, b.group);
+			}
+		})
+		.map(function(d) { return d.group }))
+		.copy();
+	
+		var transition = svg.transition().duration(500),
+			delay = function(d, i) { return i * 100; };
+	
+		transition.selectAll(".bar")
+			.attr("x", function(d) { return x0(d.group); });
+	
+		transition.selectAll(".xAxis")
+			.call(xAxis)
+			.selectAll("g");
+	}
+}
+
+function type(d) {
+	d.reduction = +d.reduction;
+	return d;
+}
+
+/* Writes the table results to the table body */
+function write_results(data) {
+	html = "";
+
+	for (var i in data) {
+		html += "<tr>";
+		for (var h in headings) {
+			html += "<td>" + data[i][headings[h]] + "</td>";
+		}
+	}
+
+	html += "</tr>";
+	$('#table_body').html(html);
+}
+
+function write_snp_details(data) {
+	headers = "<h2>" + data[0]['LocusTag'] + " : " + data[0]['Product'] + "</h2>"
+	headers += "<table class='table'>";
+	headers += "<thead id='headings'><tr>";
+
+	// Write the headers
+	for (var h in headings) {
+		headers += "<th id='" + headings[h]  + "'><a>" + headings[h] + "</a></th>";
+	}
+
+	headers += "</tr></thead>";
+
+	// Empty table body to populate
+	headers += "<tbody id='table_body'></tbody>";
+	headers += "</table>";
+
+	// Set the table headers
+    $('#table').html(headers);
+
+	// Populate the table data
+	write_results(data);
+
+	// Set up the sorting (clicking the table header)	
+	$(function() {
+		$('#headings th').click(function() {
+			var id = $(this).attr('id');
+			var asc = (!$(this).attr('asc'));
+			
+			// set asc="asc" when sorted in ascending order
+			$('#headings th').each(function() {
+				$(this).removeAttr('asc');
+			});
+
+			if (asc) $(this).attr('asc', 'asc');
+
+			sortResults(data, id, asc);
+			write_results(data);
+		});
+	});
+}
+
+function draw_product_heatmap(data) {
+    // Product heat map code here hooray
+    alert("DONE");
+}
+
+function sortResults(data, prop, asc) {
+	data = data.sort(function(a, b) {
+		if (asc) return (a[prop] > b[prop]);
+		else return (b[prop] > a[prop]);
+	});
+}
