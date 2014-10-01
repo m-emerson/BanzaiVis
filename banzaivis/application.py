@@ -30,18 +30,18 @@ def get_locus_by_keyword():
     else:
         products = web_queries.get_product_by_keyword(request.args.get("keyword"))
     return json.dumps(products)
-    
+
 @app.route('/_get_strain_details', methods=['GET'])
 def get_strain_details():
     if request.args.get("StrainID") is None:
         return "No Strain Specified"
 
     strains = json.loads(request.args.get("StrainID"))
-    
+
     if (len(strains) < 1):
         return 0
-        
-    strainStats = web_queries.get_raw_strain_stats(strains) 
+
+    strainStats = web_queries.get_raw_strain_stats(strains)
     return json.dumps(strainStats)
 
     # Find all the raw information about each strain
@@ -50,8 +50,8 @@ def get_strain_details():
 def get_snp_locus_details():
     if request.args.get("StrainID") is "":
         return 0
-    
-    strains = json.loads(request.args.get("StrainID"))  
+
+    strains = json.loads(request.args.get("StrainID"))
     lociStats = web_queries.get_loci_snp_stats(strains)
     return json.dumps(lociStats)
 
@@ -60,7 +60,7 @@ def get_details_by_product():
     products = json.loads(request.args.get("products"))
     results = web_queries.strain_loci_by_keyword(products)
     return json.dumps(results)
-    
+
 @app.route('/_get_distinct_loci', methods=['GET'])
 def get_distinct_loci():
     selection = web_queries.get_distinct_loci(request.args.get("text"))
