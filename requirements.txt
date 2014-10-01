@@ -1,3 +1,5 @@
 flask==0.10.1
 banzaidb==0.3.0
 rethinkdb==1.14.0-1
+gunicorn==19.1.1
+Fabric==1.10.0
