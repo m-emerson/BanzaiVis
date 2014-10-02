@@ -1,12 +1,31 @@
 from flask import Flask, render_template, jsonify, request, g, request, abort
+from flask.ext.script import Manager
+from subprocess import call
+import click
 import queries as web_queries
-from config import *
 from BanzaiDB.fabfile import variants as queries
 import json
 import rethinkdb as r
 from rethinkdb.errors import RqlRuntimeError, RqlDriverError
 
 app = Flask(__name__)
+manager = Manager(app)
+
+@manager.command
+def init_db():
+    """
+    Initialises the database with BanzaiDB defaults
+    """
+    call(["BanzaiDB", "init"])
+
+@manager.command
+def populate(run_path):
+    """
+    Populate the datababase with nesoni mapping run using BanzaiDB
+    :param run_path: full path as a string to the Banzai run (inclusive of $PROJECTBASE).
+                     For example: /$PROJECTBASE/map/$REF.2014-04-28-mon-16-41-51
+    """
+    call(["BanzaiDB", "populate", "mapping", run_path])
 
 @app.errorhandler(404)
 def page_not_found(e):
@@ -44,8 +63,6 @@ def get_strain_details():
     strainStats = web_queries.get_raw_strain_stats(strains) 
     return json.dumps(strainStats)
 
-    # Find all the raw information about each strain
-
 @app.route('/_get_snp_locus_details', methods=['GET'])
 def get_snp_locus_details():
     if request.args.get("StrainID") is "":
@@ -78,5 +95,4 @@ def get_locus_details():
     return json.dumps(result)
 
 if __name__ == '__main__':
-    app.debug = True
-    app.run(host='0.0.0.0', debug=True)
+    manager.run()
