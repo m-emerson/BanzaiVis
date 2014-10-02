@@ -22,7 +22,10 @@ In your code import it::
     >>> import banzaivis
     >>> from banzaivis import queries
 
-**Note:** BanzaiVis uses BanzaiDB as its datastore.  Please refer to the `BanzaiDB documentation`_ (via ReadTheDocs) for detailed information on how to set up a custom BanzaiDB instance.  Otherwise, the defaults will be used::
+**Note:** BanzaiVis uses BanzaiDB as its datastore.  Please refer to the `BanzaiDB documentation`_ (via ReadTheDocs) for detailed information on how to set up a custom BanzaiDB instance.  Otherwise, the defaults will be used.
+
+Usage instructions::
+
     usage: application.py [-?] {shell,init_db,populate,runserver} ...
 
     positional arguments:
