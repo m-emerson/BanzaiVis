@@ -16,7 +16,7 @@ from setuptools import setup
 
 __title__         = 'BanzaiVis'
 __version__       = '0.0.1'
-__description__   = "BanzaiVis manages the results of InterproScan runs"
+__description__   = "BanzaiVis visualises results from BanzaiDB"
 __author__        = 'Marisa Emerson'
 __author_email__  = 'exterminate@dalek.com.au'
 __url__           = 'https://github.com/m-emerson/BanzaiVis'
