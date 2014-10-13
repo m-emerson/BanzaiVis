@@ -16,7 +16,7 @@ def get_product_by_keyword(keyword):
 
     If no keyword is specified, return all the unique products
 
-    :param keyword: TODO
+    :param keyword: string containing a keyword relating to gene function e.g. "metabolism"
 
     :returns: TODO
     """
@@ -234,7 +234,8 @@ def get_locus_details(strain, locus):
     with database.make_connection() as connection:
         snps = list(r.table('determined_variants')
                      .filter({'StrainID': strain, 'LocusTag': locus})
-                     .order_by('Position')
+                     .has_fields('LocusTag')
+                     .order_by('CDSBaseNum')
                      .run(connection))
         seq_info = list(r.table('reference_features')
                          .filter({'locus_tag': locus})

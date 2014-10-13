@@ -402,40 +402,54 @@ function draw_sequence(snps, seq_info) {
     offset = 0;
     snpid = 0;
 
-    /*for (var i=0; i < seq_info['sequence'].length; i++) {
-        console.log(i);
+    substitutions = 0;
+
+    console.log(snps);
+
+    for (var i=0; i < seq_info['sequence'].length; i++) {
         if (snpid < snps.length) {
             if (i == snps[snpid].CDSBaseNum) {
                 if (snps[snpid].Class == "substitution") {
                     newSequence += snps[snpid].ChangeBase;
+
+                    if (snps[snpid].SubClass == "synonymous")
+                        highlight = "blue";
+                    else
+                        highlight = "red";
+                    highlights.push( {start: snps[snpid].CDSBaseNum + 1,
+                        end: snps[snpid].CDSBaseNum + 1,
+                        color: highlight,
+                        });
+
                 } else if (snps[snpid].Class == "insertion") {
                     newSequence += snps[snpid].ChangeBase;
                 }
                 snpid++;
-                continue;
+            } else {
+                newSequence += seq_info['sequence'].charAt(i);
             }
         }
-       newSequence += seq_info['sequence'].charAt(i);
-    }*/
-
-    snps.forEach(function(d) {
+    }
+    
+    /*snps.forEach(function(d) {
         if (d.Class == "substitution") {
             if (d.SubClass == "synonymous")
                 highlight = "blue";
             else
                 highlight = "red";
-            highlights.push( { start : d.CDSBaseNum,
-                                end : d.CDSBaseNum,
+            highlights.push( { start : d.CDSBaseNum + 1,
+                                end : d.CDSBaseNum + 1,
                                 color: highlight,
                                 });
         } else if (d.Class = "insertion") {
         } else if (d.Class = "deletion") {
             
         }
-    });
+    }); */
 
     var locusSequence = new Biojs.Sequence({
-        sequence: seq_info['sequence'], 
+        //sequence: seq_info['sequence'], 
+        sequence: newSequence,
         target: "seq_info",
         format: 'CODATA',
         id : seq_info['locus_tag'] + ' - ' + seq_info['product'],
