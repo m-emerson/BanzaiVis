@@ -1,1 +1,3 @@
 *.pyc
+logs/access_logs.log
+logs/error_logs.log
