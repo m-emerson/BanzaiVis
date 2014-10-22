@@ -19,7 +19,7 @@ def get_product_by_keyword(keyword):
                     .pluck('Product')\
                     .distinct()\
                     .run(connection)
-        
+
         return cursor
 
 def get_raw_strain_stats(strains):
@@ -84,7 +84,7 @@ def get_loci_snp_stats(strains):
                                 .ungroup()\
                                 .order_by(r.row["group"])\
                                 .run(connection))
-                lociStats[filterClass] = locus_snps       
+                lociStats[filterClass] = locus_snps
 
         # find locus information via ref_feat table and determine frequency
         for k in lociStats:
@@ -132,13 +132,13 @@ def get_coverage_statistics(strain):
     with database.make_connection() as connection:
         # All possible locus tags
         tags = list(r.table('reference_features')\
-            .filter(lambda ref: 
+            .filter(lambda ref:
                 ref.has_fields('locus_tag')
             )
             .order_by('locus_tag')\
             .pluck('locus_tag')\
             .run(connection))
-        
+
         coverage = list(r.table('strain_features')\
             .filter({'StrainID' : strain})\
             .has_fields('coverage', 'LocusTag')\
@@ -158,7 +158,7 @@ def get_coverage_statistics(strain):
             count += 1
         else:
             stat = 1.0;
-    
+
         coverage_stats.append({'x' : tag['locus_tag'], 'coverage' : float(stat)})
         numbers.append(stat)
 
@@ -177,7 +177,7 @@ def strain_loci_by_keyword(products):
                     .pluck(headers)\
                     .run(connection))
     sp = {}
-    
+
     # Get unique strains and counts
     for snp in result:
         if snp['StrainID'] in sp:
@@ -188,7 +188,7 @@ def strain_loci_by_keyword(products):
         else:
             sp[snp['StrainID']] = { snp['LocusTag'] : { 'count' : 1, 'product' : snp['Product'] } }
 
-    heatmap_parsed = []   
+    heatmap_parsed = []
     for key in sp:
         for loci in sp[key]:
             heatmap_parsed.append( {'strain' : key, 'locus' : loci, 'count' : sp[key][loci]['count']} )
@@ -213,7 +213,7 @@ def get_locus_details(strain, locus):
 
         seq_info = list(r.table('reference_features')\
                         .filter({'locus_tag' : locus})\
-                        .run(connection)) 
+                        .run(connection))
 
         result = { 'snps' : snps, 'seq_info' : seq_info }
 
@@ -253,5 +253,5 @@ def get_distinct_loci(query):
             .pluck('LocusTag')\
             .distinct()\
             .run(connection))
-    
+
     return selection
