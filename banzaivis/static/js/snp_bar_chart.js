@@ -4,6 +4,7 @@ function draw_snp_bar_chart(strain, data, coverage) {
     
     var selected = [];
     draw_select_box(data['layers'][0].values);
+    alert(data['layers'][0].values.length);
     var main_margin = {top: 20, right: 20, bottom: 120, left: 40},
         main_width = 900 - main_margin.left - main_margin.right,
         main_height = 600 - main_margin.top - main_margin.bottom;
@@ -404,8 +405,9 @@ function draw_sequence(snps, seq_info) {
 
     substitutions = 0;
 
-    console.log(snps);
-
+    /* TODO
+        add indels  
+    */
     for (var i=0; i < seq_info['sequence'].length; i++) {
         if (snpid < snps.length) {
             if (i == snps[snpid].CDSBaseNum) {

@@ -250,9 +250,9 @@ def get_offsets(locus_tag, strain, position):
 
     .. warning: offset is not initialized...
 
-    :param locus_tag: TODO
+    :param locus_tag: string containing locus of interest
 
-    :param strain: TODO
+    :param strain: string containing strain of interest
 
     :param position: TODO
 
