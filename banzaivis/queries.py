@@ -4,7 +4,7 @@ from BanzaiDB import database
 
 __title__ = 'BanzaiVis'
 __version__ = '0.0.1'
-__description__   = "BanzaiVis visualises results from BanzaiDB"
+__description__ = "BanzaiVis visualises results from BanzaiDB"
 __author__ = 'Marisa Emerson'
 __author_email__ = 'exterminate@dalek.com.au'
 __url__ = 'https://github.com/m-emerson/BanzaiVis'
@@ -16,7 +16,8 @@ def get_product_by_keyword(keyword):
 
     If no keyword is specified, return all the unique products
 
-    :param keyword: string containing a keyword relating to gene function e.g. "metabolism"
+    :param keyword: string containing a keyword relating to gene function e.g.
+                    "metabolism"
 
     :returns: TODO
     """
@@ -28,10 +29,10 @@ def get_product_by_keyword(keyword):
                       .run(connection)
         else:
             cursor = r.table('reference_features')\
-                    .filter(lambda row:row['Product'].match(keyword))\
-                    .pluck('Product')\
-                    .distinct()\
-                    .run(connection)
+                      .filter(lambda row: row['Product'].match(keyword))\
+                      .pluck('Product')\
+                      .distinct()\
+                      .run(connection)
         return cursor
 
 
@@ -98,13 +99,14 @@ def get_loci_snp_stats(strains):
         # Insertions and deletions
         for k, v in filter_by.items():
             for filterClass in v:
-                locus_snps = list(r.table('determined_variants')\
-                                .filter({'StrainID' : strains[0], k : filterClass})\
-                                .group("RefFeat")\
-                                .count()\
-                                .ungroup()\
-                                .order_by(r.row["group"])\
-                                .run(connection))
+                locus_snps = list(r.table('determined_variants')
+                                   .filter({'StrainID': strains[0],
+                                            k: filterClass})
+                                   .group("RefFeat")
+                                   .count()
+                                   .ungroup()
+                                   .order_by(r.row["group"])
+                                   .run(connection))
                 lociStats[filterClass] = locus_snps
         # find locus information via ref_feat table and determine frequency
         for k in lociStats:
@@ -157,20 +159,17 @@ def get_coverage_statistics(strain):
     """
     with database.make_connection() as connection:
         # All possible locus tags
-        tags = list(r.table('reference_features')\
-            .filter(lambda ref:
-                ref.has_fields('locus_tag')
-            )
-            .order_by('locus_tag')\
-            .pluck('locus_tag')\
-            .run(connection))
-
-        coverage = list(r.table('strain_features')\
-            .filter({'StrainID' : strain})\
-            .has_fields('coverage', 'LocusTag')\
-            .order_by('LocusTag')\
-            .pluck(['LocusTag', 'coverage'])\
-            .run(connection))
+        tags = list(r.table('reference_features')
+                     .filter(lambda ref: ref.has_fields('locus_tag'))
+                     .order_by('locus_tag')
+                     .pluck('locus_tag')
+                     .run(connection))
+        coverage = list(r.table('strain_features')
+                         .filter({'StrainID': strain})
+                         .has_fields('coverage', 'LocusTag')
+                         .order_by('LocusTag')
+                         .pluck(['LocusTag', 'coverage'])
+                         .run(connection))
     coverage_stats = []
     numbers = []
     count = 0
@@ -181,8 +180,8 @@ def get_coverage_statistics(strain):
             stat = coverage[count]['coverage']
             count += 1
         else:
-            stat = 1.0;
-        coverage_stats.append({'x' : tag['locus_tag'], 'coverage' : float(stat)})
+            stat = 1.0
+        coverage_stats.append({'x': tag['locus_tag'], 'coverage': float(stat)})
         numbers.append(stat)
     return coverage_stats
 
@@ -215,7 +214,7 @@ def strain_loci_by_keyword(products):
             if snp['LocusTag'] not in sp[snp['StrainID']]:
                 sp[snp['StrainID']][snp['LocusTag']] = {'count': 1, 'product': snp['Product']}
         else:
-            sp[snp['StrainID']] = { snp['LocusTag'] : { 'count' : 1, 'product' : snp['Product'] } }
+            sp[snp['StrainID']] = {snp['LocusTag']: {'count': 1, 'product': snp['Product']}}
     heatmap_parsed = []
     for key in sp:
         for loci in sp[key]:
@@ -290,9 +289,9 @@ def get_distinct_loci(query):
     :returns: TODO
     """
     with database.make_connection() as connection:
-        selection = list(r.table('nesoni_report')\
-            .filter(r.row['LocusTag'].match("^" + query))\
-            .pluck('LocusTag')\
-            .distinct()\
-            .run(connection))
+        selection = list(r.table('nesoni_report')
+                          .filter(r.row['LocusTag'].match("^" + query))
+                          .pluck('LocusTag')
+                          .distinct()
+                          .run(connection))
     return selection
