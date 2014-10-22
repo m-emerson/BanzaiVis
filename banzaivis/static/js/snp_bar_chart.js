@@ -137,7 +137,10 @@ function draw_snp_bar_chart(strain, data, coverage) {
         .attr("y", main_height)
         .attr("width", main_x0.rangeBand())
         .attr("height", 0)
-        .on("click", handle_bar_selection);
+        .on("click", function(d) {
+            d3.event.stopPropagation();
+            bar_select(d.x);
+        });
 
     // Coverage bar
     var coverage = main.selectAll(".coverage")
@@ -218,7 +221,6 @@ function draw_snp_bar_chart(strain, data, coverage) {
         .attr("width", 15)
         .attr("height", 15)
         .style("fill", color)
-        //.on("mouseover", highlight_class)
         .on("mouseout", function(d) { snpClass.style("fill-opacity", "1"); snpClass.selectAll("text").remove(); });
 
     legend.append("text")
@@ -244,6 +246,8 @@ function draw_snp_bar_chart(strain, data, coverage) {
             ], 0.1);
 
         p = brush.extent();
+
+        console.log("start: " + p[0]);
         brushrange = p[1] - p[0];
 
         if (brushrange == 0 || brushrange > 15) 
@@ -273,29 +277,30 @@ function draw_snp_bar_chart(strain, data, coverage) {
         console.log("Brush extent: " + p);
     } 
 
-    function handle_bar_selection(d) {
-        d3.event.stopPropagation();
-        var tagFound = false;
-
+    function bar_select(locus) {
         var notSelected = rect.filter(function(b) {
-            return b.x != d.x;
+            return b.x != locus;
         });
-
+    
         var selected = rect.filter(function(b) {
-            return b.x == d.x;
+            return b.x == locus;
         });
 
         notSelected.style("fill-opacity", "0.5");
         selected.style("fill-opacity", "1");
-
+        
         $("#locus_load").show();
         $.getJSON('/_get_locus_details', {
-            LocusTag: d.x, StrainID: strain
+            LocusTag: locus, StrainID: strain
         }, function(r) {
             draw_sequence(r.snps, r.seq_info[0]);
-            write_table(r.snps);
+            if (r.snps.length > 0)
+                write_table(r.snps);
+            else
+                $("#table").html("");
             $("#locus_load").hide();
         });
+
     }
 
     function highlight_class(data) {
@@ -358,19 +363,27 @@ function draw_snp_bar_chart(strain, data, coverage) {
         // Select box here
         var select_contents = "";
         for (var d in data) {
-            select_contents += "<option value='" + data[d].x + "'>" + data[d].x + "</option>";
+            if (data[d].x != null) {
+                select_contents += "<option value='" + data[d].x + "'>" + data[d].x + "</option>";
+            }
         }
         var jump = "Jump to: <select id='jump'>" + select_contents + "</select>";
         var html = jump;
         $("#header").html(html);
         $("#jump").change(function() {
             var selected_jump = $("#jump>option:selected").html();
+            var index = loci_indexes[selected_jump];
             var loci_location = loci_indexes[selected_jump] * mini_x0.rangeBand();
+
+            from_val = mini_x0.range()[index] - 5;
+            to_val = mini_x0.range()[index] + 5;
 
             /* TODO: centre and select the correct band */
             brush.extent([from_val, to_val]);
             svg.select(".brush").call(brush)
                                 .call(brushed);
+
+            bar_select(selected_jump);
         });
     }
 }
@@ -389,40 +402,54 @@ function draw_sequence(snps, seq_info) {
     offset = 0;
     snpid = 0;
 
-    /*for (var i=0; i < seq_info['sequence'].length; i++) {
-        console.log(i);
+    substitutions = 0;
+
+    console.log(snps);
+
+    for (var i=0; i < seq_info['sequence'].length; i++) {
         if (snpid < snps.length) {
             if (i == snps[snpid].CDSBaseNum) {
                 if (snps[snpid].Class == "substitution") {
                     newSequence += snps[snpid].ChangeBase;
+
+                    if (snps[snpid].SubClass == "synonymous")
+                        highlight = "blue";
+                    else
+                        highlight = "red";
+                    highlights.push( {start: snps[snpid].CDSBaseNum + 1,
+                        end: snps[snpid].CDSBaseNum + 1,
+                        color: highlight,
+                        });
+
                 } else if (snps[snpid].Class == "insertion") {
                     newSequence += snps[snpid].ChangeBase;
                 }
                 snpid++;
-                continue;
+            } else {
+                newSequence += seq_info['sequence'].charAt(i);
             }
         }
-       newSequence += seq_info['sequence'].charAt(i);
-    }*/
-
-    snps.forEach(function(d) {
+    }
+    
+    /*snps.forEach(function(d) {
         if (d.Class == "substitution") {
             if (d.SubClass == "synonymous")
                 highlight = "blue";
             else
                 highlight = "red";
-            highlights.push( { start : d.CDSBaseNum,
-                                end : d.CDSBaseNum,
+            highlights.push( { start : d.CDSBaseNum + 1,
+                                end : d.CDSBaseNum + 1,
                                 color: highlight,
                                 });
         } else if (d.Class = "insertion") {
         } else if (d.Class = "deletion") {
             
         }
-    });
+    }); */
 
     var locusSequence = new Biojs.Sequence({
-        sequence: seq_info['sequence'], 
+        //sequence: seq_info['sequence'], 
+        sequence: newSequence,
         target: "seq_info",
         format: 'CODATA',
         id : seq_info['locus_tag'] + ' - ' + seq_info['product'],

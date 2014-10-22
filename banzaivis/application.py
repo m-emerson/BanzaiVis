@@ -1,5 +1,7 @@
+import queries as web_queries
 from flask import Flask, render_template, request
-# from flask import jsonify, g, abort
+from subprocess import call
+from flask.ext.script import Manager
 import queries as web_queries
 from BanzaiDB.fabfile import variants as queries
 import json
@@ -7,13 +9,30 @@ import json
 
 __title__ = 'BanzaiVis'
 __version__ = '0.0.1'
-__description__ = "BanzaiVis manages the results of InterproScan runs"
+__description__   = "BanzaiVis visualises results from BanzaiDB"
 __author__ = 'Marisa Emerson'
 __author_email__ = 'exterminate@dalek.com.au'
 __url__ = 'https://github.com/m-emerson/BanzaiVis'
 
 
 app = Flask(__name__)
+manager = Manager(app)
+
+@manager.command
+def init_db():
+    """
+    Initialises the database with BanzaiDB defaults
+    """
+    call(["BanzaiDB", "init"])
+
+@manager.command
+def populate(run_path):
+    """
+    Populate the datababase with nesoni mapping run using BanzaiDB
+    :param run_path: full path as a string to the Banzai run (inclusive of $PROJECTBASE).
+                     For example: /$PROJECTBASE/map/$REF.2014-04-28-mon-16-41-51
+    """
+    call(["BanzaiDB", "populate", "mapping", run_path])
 
 
 @app.errorhandler(404)
@@ -101,5 +120,4 @@ def get_locus_details():
 
 
 if __name__ == '__main__':
-    app.debug = True
-    app.run(host='0.0.0.0', debug=True)
+    manager.run()

@@ -4,7 +4,7 @@ from BanzaiDB import database
 
 __title__ = 'BanzaiVis'
 __version__ = '0.0.1'
-__description__ = "BanzaiVis manages the results of InterproScan runs"
+__description__   = "BanzaiVis visualises results from BanzaiDB"
 __author__ = 'Marisa Emerson'
 __author_email__ = 'exterminate@dalek.com.au'
 __url__ = 'https://github.com/m-emerson/BanzaiVis'
@@ -16,7 +16,7 @@ def get_product_by_keyword(keyword):
 
     If no keyword is specified, return all the unique products
 
-    :param keyword: TODO
+    :param keyword: string containing a keyword relating to gene function e.g. "metabolism"
 
     :returns: TODO
     """
@@ -234,16 +234,15 @@ def get_locus_details(strain, locus):
     :returns: a dictionary containing the snps and the seq_info
     """
     with database.make_connection() as connection:
-        snps = list(r.table('determined_variants')\
-                    .filter({'StrainID' : strain, 'LocusTag' : locus})\
-                    .order_by('Position')\
-                    .run(connection))
-
-        seq_info = list(r.table('reference_features')\
-                        .filter({'locus_tag' : locus})\
-                        .run(connection))
-
-        result = { 'snps' : snps, 'seq_info' : seq_info }
+        snps = list(r.table('determined_variants')
+                     .filter({'StrainID': strain, 'LocusTag': locus})
+                     .has_fields('LocusTag')
+                     .order_by('CDSBaseNum')
+                     .run(connection))
+        seq_info = list(r.table('reference_features')
+                         .filter({'locus_tag': locus})
+                         .run(connection))
+        result = {'snps': snps, 'seq_info': seq_info}
     return result
 
 
