@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request
 # from flask import jsonify, g, abort
 import queries as web_queries
-# from config import *
 from BanzaiDB.fabfile import variants as queries
 import json
 
