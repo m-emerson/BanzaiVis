@@ -4,7 +4,6 @@ function draw_snp_bar_chart(strain, data, coverage) {
     
     var selected = [];
     draw_select_box(data['layers'][0].values);
-    alert(data['layers'][0].values.length);
     var main_margin = {top: 20, right: 20, bottom: 120, left: 40},
         main_width = 900 - main_margin.left - main_margin.right,
         main_height = 600 - main_margin.top - main_margin.bottom;
@@ -413,18 +412,26 @@ function draw_sequence(snps, seq_info) {
             if (i == snps[snpid].CDSBaseNum) {
                 if (snps[snpid].Class == "substitution") {
                     newSequence += snps[snpid].ChangeBase;
-
                     if (snps[snpid].SubClass == "synonymous")
                         highlight = "blue";
                     else
                         highlight = "red";
-                    highlights.push( {start: snps[snpid].CDSBaseNum + 1,
-                        end: snps[snpid].CDSBaseNum + 1,
+                    console.log("offset: " + offset);
+                    highlights.push( {start: snps[snpid].CDSBaseNum + 1 + offset,
+                        end: snps[snpid].CDSBaseNum + 1 + offset,
                         color: highlight,
-                        });
-
+                    });
                 } else if (snps[snpid].Class == "insertion") {
                     newSequence += snps[snpid].ChangeBase;
+                    console.log(snps[snpid].CDSBaseNum);
+                    highlights.push( {start: snps[snpid].CDSBaseNum + 1 + offset,
+                        end: snps[snpid].CDSBaseNum + snps[snpid].ChangeBase.length + offset,
+                        color: "black",
+                        background: "yellow",
+                    });
+                    offset += snps[snpid].ChangeBase.length;
+                } else if (snps[snpid].Class == "deletion") {
+                    offset -= snps[snpid].RefBase.length; 
                 }
                 snpid++;
             } else {
