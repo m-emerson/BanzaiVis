@@ -57,6 +57,7 @@ def get_all_reports():
 @app.route('/_get_locus_by_keyword', methods=['GET'])
 def get_locus_by_keyword():
     """
+    Get all distinct locus according to specified keyword
     """
     if not request.args.get("keyword"):
         products = web_queries.get_product_by_keyword(None)
@@ -69,6 +70,7 @@ def get_locus_by_keyword():
 @app.route('/_get_strain_details', methods=['GET'])
 def get_strain_details():
     """
+    Get statistics about specified strain
     """
     if request.args.get("StrainID") is None:
         return "No Strain Specified"
@@ -82,6 +84,8 @@ def get_strain_details():
 @app.route('/_get_snp_locus_details', methods=['GET'])
 def get_snp_locus_details():
     """
+    Get SNP statistics for each type of variation in each locus in specified
+    strain
     """
     if request.args.get("StrainID") is "":
         return 0
@@ -93,6 +97,7 @@ def get_snp_locus_details():
 @app.route('/_get_details_by_product', methods=['GET'])
 def get_details_by_product():
     """
+    Get strain and locus details according to specified gene product
     """
     products = json.loads(request.args.get("products"))
     results = web_queries.strain_loci_by_keyword(products)
