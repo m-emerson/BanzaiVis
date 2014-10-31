@@ -88,7 +88,6 @@ function draw_snp_bar_chart(strain, data, coverage) {
     var brush = d3.svg.brush()
         .x(mini_x0)
         .on("brushend", brushed);
-        //.on("brushend", brushend);
 
     // Add the Y axis
     main.append("g")
@@ -97,15 +96,6 @@ function draw_snp_bar_chart(strain, data, coverage) {
         .call(main_yAxis)
     .style("fill", "black")
     .style("stroke", "black");
-
-    /*main.append("g")
-        .attr("class", "select brush")
-        .call(selection_brush)
-        .style("fill-opacity", ".125")
-        .selectAll("rect")
-        .attr("y", 0)
-        .attr("x", 0)
-        .attr("height", "y");  */
 
     // Layer for stacked bar chart
     var snpClass = main.selectAll(".snpClass")
@@ -125,8 +115,8 @@ function draw_snp_bar_chart(strain, data, coverage) {
             .style("font-size", "11px")
             .attr("dy", "-.5em")
             .attr("transform", function(d) {
+                //return "translate(0, 40)rotate(-90)";
                 return "translate(0, 40)rotate(-90)";
-
             });
 
     // Stacked bar chart
@@ -146,17 +136,11 @@ function draw_snp_bar_chart(strain, data, coverage) {
     var coverage = main.selectAll(".coverage")
         .data(data['coverage'])
         .enter().append("rect")
-        //.data(data['coverage'])
         .attr("x", function(d) { return main_x0(d.x); })
-        .attr("y", main_height + 5) /* functen(d) { return main_height; }) */
+        .attr("y", main_height + 5)
         .attr("width", main_x0.rangeBand())
         .attr("height", 10)
-        .style("fill", function(d, i) { return c(d.coverage); });/*heatmapColour(c(d)); */
-        //.attr("transform", "translate(0," + main_height + main_margin.top + ")");
-        
-    /*  .attr("x", function(d) { return main_x0(d.x); })
-        .attr("y", function(d) { return main_y(d.y0 + d.y); })
-        .text("H");*/
+        .style("fill", function(d, i) { return c(d.coverage); });
 
     var clip = snpClass.append("defs").append("svg:clipPath")
         .attr("id", "clip")
@@ -172,7 +156,7 @@ function draw_snp_bar_chart(strain, data, coverage) {
 
     rect.transition()
         .delay(10)
-        .attr("y", function(d) { return main_y(d.y0 + d.y); })
+        .attr("y", function(d) { if (isNaN(main_y(d.y0 + d.y))) { console.log(d.y0); console.log(d.y); console.log(d.x); } return main_y(d.y0 + d.y); })
         .attr("height", function(d) { return main_y(d.y0) - main_y(d.y0 + d.y); });
 
     // Add the mini x axis
@@ -247,7 +231,6 @@ function draw_snp_bar_chart(strain, data, coverage) {
 
         p = brush.extent();
 
-        console.log("start: " + p[0]);
         brushrange = p[1] - p[0];
 
         if (brushrange == 0 || brushrange > 15) 
@@ -272,9 +255,13 @@ function draw_snp_bar_chart(strain, data, coverage) {
                 return main_x0(d.x);
             });
  
-        main.select("g.x.axis").call(main_xAxis);
+        main.select("g.x.axis").call(main_xAxis)
+            .selectAll("text")
+            .attr("transform", function(d) {
+                return "translate(" + -(main_x0.rangeBand()) + ", 40)rotate(-90)";
+            });
+
         snpClass.attr("clip-path", "url(#clip)");
-        console.log("Brush extent: " + p);
     } 
 
     function bar_select(locus) {
@@ -394,8 +381,6 @@ function draw_sequence(snps, seq_info) {
     var annotations = [];
     var highlights = [];
 
-    // TODO: First modify sequence with all the changes so we display
-    // the modified sequence as opposed to the original sequence
     var highlight;
     var newSequence = "";
 
@@ -404,9 +389,7 @@ function draw_sequence(snps, seq_info) {
 
     substitutions = 0;
 
-    /* TODO
-        add indels  
-    */
+    /* Modify the reference sequence with reported SNPs */
     for (var i=0; i < seq_info['sequence'].length; i++) {
         if (snpid < snps.length) {
             if (i == snps[snpid].CDSBaseNum) {
@@ -416,14 +399,12 @@ function draw_sequence(snps, seq_info) {
                         highlight = "blue";
                     else
                         highlight = "red";
-                    console.log("offset: " + offset);
                     highlights.push( {start: snps[snpid].CDSBaseNum + 1 + offset,
                         end: snps[snpid].CDSBaseNum + 1 + offset,
                         color: highlight,
                     });
                 } else if (snps[snpid].Class == "insertion") {
                     newSequence += snps[snpid].ChangeBase;
-                    console.log(snps[snpid].CDSBaseNum);
                     highlights.push( {start: snps[snpid].CDSBaseNum + 1 + offset,
                         end: snps[snpid].CDSBaseNum + snps[snpid].ChangeBase.length + offset,
                         color: "black",
@@ -440,22 +421,6 @@ function draw_sequence(snps, seq_info) {
         }
     }
     
-    /*snps.forEach(function(d) {
-        if (d.Class == "substitution") {
-            if (d.SubClass == "synonymous")
-                highlight = "blue";
-            else
-                highlight = "red";
-            highlights.push( { start : d.CDSBaseNum + 1,
-                                end : d.CDSBaseNum + 1,
-                                color: highlight,
-                                });
-        } else if (d.Class = "insertion") {
-        } else if (d.Class = "deletion") {
-            
-        }
-    }); */
-
     var locusSequence = new Biojs.Sequence({
         //sequence: seq_info['sequence'], 
         sequence: newSequence,
