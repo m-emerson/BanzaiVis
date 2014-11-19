@@ -1,5 +1,6 @@
 import queries as web_queries
 from flask import Flask, render_template, request
+from flask.ext.restful import Resource, Api, reqparse
 from subprocess import call
 from flask.ext.script import Manager
 import queries as web_queries
@@ -17,6 +18,7 @@ __url__ = 'https://github.com/m-emerson/BanzaiVis'
 
 app = Flask(__name__)
 manager = Manager(app)
+api = Api(app)
 
 @manager.command
 def init_db():
@@ -45,6 +47,140 @@ def index():
     return render_template('index.html')
 
 
+# /strains/list
+class Strains(Resource):
+    def get(self):
+        return queries.get_required_strains(None)
+
+
+# /strains/stats
+class StrainStats(Resource):
+    def __init__(self):
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('sid', type=str, required=True,
+            action='append', help='Error: requires sid parameter', location='args')
+        super(StrainStats, self).__init__()
+
+    def get(self):
+        args = self.reqparse.parse_args()
+        return web_queries.get_raw_strain_stats(args['sid'])
+
+
+# /products/search  
+class ProductByKeyword(Resource):
+    """
+    """
+    def __init__(self):
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('keyword', type=str, required=True,
+            help='Error: requires "keyword" parameter', location='args')
+        super(ProductByKeyword, self).__init__()
+
+    def get(self):
+        args = self.reqparse.parse_args()
+        return web_queries.get_product_by_keyword(args['keyword'])
+
+
+# /products/list
+class ProductList(Resource):
+    """
+    """
+    def get(self):
+        return web_queries.get_product_by_keyword()
+
+
+# /variants/list
+# List all variants for specified strain
+class VarianceStats(Resource):
+    """
+    """
+    def __init__(self):
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('sid', type=str, required=True,
+            action='append', help='Error: requires sid parameter', location='args')
+        super(VarianceStats, self).__init__()
+    
+    def get(self):
+        args = self.reqparse.parse_args()
+        return web_queries.get_loci_snp_stats(args['sid'])
+
+
+# /variants/locus
+# list all variants for specified strain and specified locus
+class VarianceLookup(Resource):
+    """
+    """
+    def __init__(self):
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('sid', type=str, required=True,
+            help='Error: requires sid parameter', location='args')
+        self.reqparse.add_argument('locus', type=str, required=True,
+            help='Error: requires locus parameter', location='args')
+        super(VarianceLookup, self).__init__()
+
+    def get(self):
+        args = self.reqparse.parse_args()
+        return web_queries.get_locus_details(args['sid'], args['locus'])
+
+
+# localhost/product/products
+class DetailsByProduct(Resource):
+    """
+    """
+    def __init__(self):
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('products', type=str, action='append',
+            required=True, help='No product specified', location='args')
+        super(DetailsByProduct, self).__init__()
+
+    def get(self):
+        args = self.reqparse.parse_args()
+        return web_queries.strain_loci_by_keyword(args['products'])
+
+
+# localhost/locus/ => Give us a list of all available locus
+class DetailsByLocus(Resource):
+    def __init__(self):
+        self.reqparse = reqparse.RequestParser()
+        pass         
+
+
+# /reference/locus
+class ReferenceList(Resource):
+    """
+    """
+    def __init__(self):
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('locus', type=str, required=True,
+            help='Error: requires sid parameter', location='args')
+        super(DetailsByProduct, self).__init__()
+       
+    def get(self):
+        args = self.reqparse.parse_args()
+        return web_queries.get_reference_features(args['locus'])
+
+
+# /coverage/list
+class Coverage(Resource):
+    """
+    """
+    def __init__(self):
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('sid', type=str, required=True,
+            help='Error: requires sid parameter', location='args')
+        self.reqparse.add_argument('locus', type=str, action='append', location='args')
+        super(Coverage, self).__init__()
+    
+    def get(self):
+        args = self.reqparse.parse_args()
+        print args
+        if args['locus']:
+            return web_queries.get_coverage_statistics(args['sid'], args['locus'])
+        else:
+            return web_queries.get_coverage_statistics(args['sid'], [])
+
+
+# /coverage/locus
 @app.route('/_get_strain_ids')
 def get_all_reports():
     """
@@ -52,46 +188,6 @@ def get_all_reports():
     """
     strains = queries.get_required_strains(None)
     return json.dumps(strains)
-
-
-@app.route('/_get_locus_by_keyword', methods=['GET'])
-def get_locus_by_keyword():
-    """
-    Get all distinct locus according to specified keyword
-    """
-    if not request.args.get("keyword"):
-        products = web_queries.get_product_by_keyword(None)
-    else:
-        products = web_queries.get_product_by_keyword(
-            request.args.get("keyword"))
-    return json.dumps(products)
-
-
-@app.route('/_get_strain_details', methods=['GET'])
-def get_strain_details():
-    """
-    Get statistics about specified strain
-    """
-    if request.args.get("StrainID") is None:
-        return "No Strain Specified"
-    strains = json.loads(request.args.get("StrainID"))
-    if (len(strains) < 1):
-        return 0
-    strainStats = web_queries.get_raw_strain_stats(strains)
-    return json.dumps(strainStats)
-
-
-@app.route('/_get_snp_locus_details', methods=['GET'])
-def get_snp_locus_details():
-    """
-    Get SNP statistics for each type of variation in each locus in specified
-    strain
-    """
-    if request.args.get("StrainID") is "":
-        return 0
-    strains = json.loads(request.args.get("StrainID"))
-    lociStats = web_queries.get_loci_snp_stats(strains)
-    return json.dumps(lociStats)
 
 
 @app.route('/_get_details_by_product', methods=['GET'])
@@ -104,25 +200,13 @@ def get_details_by_product():
     return json.dumps(results)
 
 
-@app.route('/_get_distinct_loci', methods=['GET'])
-def get_distinct_loci():
-    """
-    """
-    selection = web_queries.get_distinct_loci(request.args.get("text"))
-    return json.dumps(selection)
-
-
-@app.route('/_get_locus_details', methods=['GET'])
-def get_locus_details():
-    """
-    """
-    if request.args.get('LocusTag') is None:
-        return 0
-    if request.args.get('StrainID') is None:
-        return 0
-    result = web_queries.get_locus_details(request.args.get('StrainID'), request.args.get('LocusTag'))
-    return json.dumps(result)
-
+# api urls
+api.add_resource(Strains, '/strains/list')
+api.add_resource(StrainStats, '/strains/stats')
+api.add_resource(ProductByKeyword, '/products/search')
+api.add_resource(VarianceStats, '/variants/list')
+api.add_resource(VarianceLookup, '/variants/locus')
+api.add_resource(Coverage, '/coverage/list')
 
 if __name__ == '__main__':
     manager.run()

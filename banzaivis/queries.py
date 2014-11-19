@@ -10,7 +10,7 @@ __author_email__ = 'exterminate@dalek.com.au'
 __url__ = 'https://github.com/m-emerson/BanzaiVis'
 
 
-def get_product_by_keyword(keyword):
+def get_product_by_keyword(keyword=None):
     """
     Returns unique product name according to specified keyword
 
@@ -23,16 +23,17 @@ def get_product_by_keyword(keyword):
     """
     with database.make_connection() as connection:
         if keyword is None:
-            cursor = r.table('reference_features')\
+            cursor = list(r.table('reference_features')\
                       .pluck('Product')\
                       .distinct()\
-                      .run(connection)
+                      .run(connection))
         else:
-            cursor = r.table('reference_features')\
+            cursor = list(r.table('reference_features')\
                       .filter(lambda row: row['Product'].match(keyword))\
                       .pluck('Product')\
                       .distinct()\
-                      .run(connection)
+                      .run(connection))
+        print cursor
         return cursor
 
 
@@ -45,7 +46,12 @@ def get_raw_strain_stats(strains):
 
     :param strains: list of strains e.g. ['S24EC', 'MS2493']
 
-    :returns: TODO
+    :returns: list of dictionaries with variance statistics for each strain
+
+    Example::
+        [{'StrainID': u'HVM1619', 'total': 15521, 'deletion': 259,
+        'insertion': 95, 'substitution': 15167}]
+    
     """
     strainStats = []
     with database.make_connection() as connection:
@@ -63,7 +69,6 @@ def get_raw_strain_stats(strains):
                            .count()
                            .run(connection))
             strainStats.append(tmp)
-    # Correct format for JSON return
     return strainStats
 
 
@@ -78,13 +83,12 @@ def get_loci_snp_stats(strains):
         [{'class' : 'substitution', 'results' : [ {'x' : 'ECSF_0002', 'y' = 17}
          ,{ 'x' : 'ECF_0003', 'y' : 28 } ] }]
 
-    .. note:: Filtering by class and grouping by LocusTag is much faster than
-              filtering by LocusTag and grouping by class (much less
-              iterations)
+    .. note:: Group and Count uses RethinkDB's MapReduce
 
     :param strains: list of strains e.g. ['S24EC', 'MS2493']
 
-    :returns: TODO
+    :returns: Raw statistics on the type of variants at each locus of the specified
+              strains
     """
     lociStats = {}
     with database.make_connection() as connection:
@@ -145,45 +149,65 @@ def get_loci_snp_stats(strains):
         # Sort so all in same order
         tmp['values'] = sorted(tmp['values'], key=lambda k: k['x'])
         layers.append(tmp)
+
     # Eventually this should actually have parameters
-    coverage = get_coverage_statistics(strains[0])
+    coverage = get_coverage_statistics(strains[0], [])
     return {'coverage': coverage, 'layers': layers}
 
 
-def get_coverage_statistics(strain):
+def get_coverage_statistics(strain, loci):
     """
     Get the coverage statistics for the specified strain
+
+    .. note:: To save space, BanzaiDB only records unusual coverage statistics
+        Entries that don't exist have a coverage of 1.0
 
     :param strain: TODO
 
     :returns: TODO
     """
+
+    headers = ['LocusTag', 'coverage']
+
     with database.make_connection() as connection:
-        # All possible locus tags
-        tags = list(r.table('reference_features')
+        # If a locus is specified, return only one entry
+        if loci:
+            tags = sorted(loci)
+            coverage =  list(r.table('strain_features')
+                .filter({'StrainID': strain})
+                .filter(lambda feature: r.expr(loci).contains(feature['LocusTag']))
+                .order_by('LocusTag')
+                .run(connection))
+
+        # Otherwise, find all locus tags in this strain and generate coverage
+        # statistics for each locus in the strain        
+        else:
+            tags = list(r.table('reference_features')
                      .filter(lambda ref: ref.has_fields('locus_tag'))
                      .order_by('locus_tag')
                      .pluck('locus_tag')
                      .run(connection))
-        coverage = list(r.table('strain_features')
-                         .filter({'StrainID': strain})
+            coverage = list(r.table('strain_features')
+                         .filter({'StrainID':strain})
                          .has_fields('coverage', 'LocusTag')
                          .order_by('LocusTag')
-                         .pluck(['LocusTag', 'coverage'])
+                         .pluck(headers)
                          .run(connection))
+
+            # Convert tags to a list containing only locustags
+            tags = [x['locus_tag'] for x in tags]
+
     coverage_stats = []
-    numbers = []
     count = 0
     for tag in tags:
-        if count >= len(coverage):
+        if count > len(coverage):
             break
-        if tag['locus_tag'] == coverage[count]['LocusTag']:
+        if len(coverage) == 0 or tag != coverage[count]['LocusTag']:
+            stat = 1.0 
+        else:
             stat = coverage[count]['coverage']
             count += 1
-        else:
-            stat = 1.0
-        coverage_stats.append({'x': tag['locus_tag'], 'coverage': float(stat)})
-        numbers.append(stat)
+        coverage_stats.append({'x': tag, 'coverage': float(stat)})
     return coverage_stats
 
 
@@ -231,11 +255,12 @@ def get_locus_details(strain, locus):
 
     :param locus: a string containing the locus of interest e.g. "ECSF_0041"
 
-    :returns: a dictionary containing the snps and the seq_info
+    :returns: a dictionary containing the snps and the reference sequence data
     """
     with database.make_connection() as connection:
         snps = list(r.table('determined_variants')
-                     .filter({'StrainID': strain, 'LocusTag': locus})
+                     .get_all(strain, index='StrainID')
+                     .filter({'LocusTag': locus})
                      .has_fields('LocusTag')
                      .order_by('CDSBaseNum')
                      .run(connection))
@@ -246,39 +271,14 @@ def get_locus_details(strain, locus):
     return result
 
 
-def get_offsets(locus_tag, strain, position):
+def get_reference_features(locus):
     """
-    Get the offsets so the positional information is more specific
-
-    .. warning: offset is not initialized...
-
-    :param locus_tag: TODO
-
-    :param strain: TODO
-
-    :param position: TODO
-
-    :returns: TODO
+    Get reference features for the specified locustag
     """
-    with database.make_connection() as connection:
-        features = list(r.table('strain_features')
-                         .filter({'StrainID': strain})
-                         .order_by('LocusTag')
-                         .has_fields('indel')
-                         .run(connection))
-        # Get intergenetic offsets
-        intergenic_regions = list(r.table('determined_variants')
-                                   .filter({'StrainID': strain,
-                                            'LocusTag': None})
-                                   .filter(r.row['Position'] < position)
-                                   .run(connection))
-        intergenic_offset = 0
-    for locus in features:
-        if locus['LocusTag'] > locus_tag:
-            break
-        else:
-            offset += locus['indel']
-    return offset + intergenic_offset
+    seq_info = list(r.table('reference_features')
+                    .filter({'locus_tag': locus})
+                    .run(connection))
+    return seq_info    
 
 
 def get_distinct_loci(query):

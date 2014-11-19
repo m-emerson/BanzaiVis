@@ -10,7 +10,7 @@ $(document).ready(function() {
 			var data = { results: [] };
 			// the current text being entered into the select2 box
 			var current_text = $("#strains").data('select2').search.val();
-			$.getJSON('/_get_strain_ids', function(d) {
+			$.getJSON('/strains/list', function(d) {
 				console.log(d);
 				for (var i = 0; i < d.length; i++) {
 					data.results.push({id: d[i], text: d[i]});
@@ -20,7 +20,7 @@ $(document).ready(function() {
 		}
 	});
 
-	$("#loci").select2({
+	/*$("#loci").select2({
 		placeholder: 'Select Loci',
 		width: '100%',
 		multiple: true,
@@ -60,7 +60,7 @@ $(document).ready(function() {
                 $("#loading-snp-keyword").hide();
             });
         }
-    });
+    }); */
 
 	/* Need to set a delay here, after the first keyup maybe wait half a second? */
 	/* Update the search table results whenever new data is typed into the box */
@@ -88,14 +88,17 @@ $(document).ready(function() {
 		var loci_selections = "[]";
 		$("#loading-snp").show();
 
-		$.getJSON('_get_strain_details', {
-			StrainID: JSON.stringify(strain_selections),	
+        selected_strain = strain_selections.slice(-1)[0]; // Last element, last selected strain
+        console.log(strain_selections.slice(-1)[0]);
+        $.getJSON('/strains/stats', {
+            sid: selected_strain,
 		}, function(d) {
 			write_raw_strain_info(d);
 		});
 
-		$.getJSON('_get_snp_locus_details', {
-			StrainID: JSON.stringify(strain_selections),
+		//$.getJSON('_get_snp_locus_details', {
+        $.getJSON('/variants/list', {
+			sid: selected_strain,
 		}, function(d) {
 			$("#raw-strain-info").show();
             draw_snp_bar_chart(strain_selections[0], d);

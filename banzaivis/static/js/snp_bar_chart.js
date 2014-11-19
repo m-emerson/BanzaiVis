@@ -277,8 +277,8 @@ function draw_snp_bar_chart(strain, data, coverage) {
         selected.style("fill-opacity", "1");
         
         $("#locus_load").show();
-        $.getJSON('/_get_locus_details', {
-            LocusTag: locus, StrainID: strain
+        $.getJSON('/variants/locus', {
+            locus: locus, sid: strain
         }, function(r) {
             draw_sequence(r.snps, r.seq_info[0]);
             if (r.snps.length > 0)
@@ -422,7 +422,6 @@ function draw_sequence(snps, seq_info) {
     }
     
     var locusSequence = new Biojs.Sequence({
-        //sequence: seq_info['sequence'], 
         sequence: newSequence,
         target: "seq_info",
         format: 'CODATA',
