@@ -15,7 +15,7 @@ function draw_snp_bar_chart(strain, data, coverage) {
     var layers = d3.layout.stack()
         .values(function(d) { return d.values; })(data['layers']);
 
-    /* Keep track of indexes */
+    /* Keep track of the index of each locus tag */
     var loci_indexes = []
     for (var i in data['layers'][0].values) {
         loci_indexes[data['layers'][0].values[i]['x']] = i;
@@ -34,7 +34,7 @@ function draw_snp_bar_chart(strain, data, coverage) {
     });
 
     var color = d3.scale.ordinal()
-        .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"]);
+        .range(["#8A0829", "#0B0B61", "#2E2E2E", "#61380B"]);
 
     var main_x0 = d3.scale.ordinal()
         .domain(layers[0].values.map(function(d) { return d.x; }))
@@ -48,7 +48,6 @@ function draw_snp_bar_chart(strain, data, coverage) {
         .range([0, main_width], .1)
         .domain([0, main_width]);
 
-    // y is the fix time scal on the Y axis
     var main_y = d3.scale.linear()
         .domain([0, yStackMax])
         .rangeRound([main_height, 0]);
@@ -57,23 +56,20 @@ function draw_snp_bar_chart(strain, data, coverage) {
         .domain([0, yStackMax])
         .rangeRound([mini_height, 0]);
 
-    // Define the X axis
     var main_xAxis = d3.svg.axis()
         .scale(main_x0)
         .orient("bottom")
-        .tickFormat(function(d) { return ''; }); // Hide x axis ticks (for now)
+        .tickFormat(function(d) { return ''; });
 
     var mini_xAxis = d3.svg.axis()
         .scale(mini_x0)
         .orient("bottom")
-        .tickFormat(function(d) { return ''; }); // Hide x axis ticks
+        .tickFormat(function(d) { return ''; }); // No x-axis ticks on mini graph
 
-    // Define the Y axis
     var main_yAxis = d3.svg.axis()
         .scale(main_y)
         .orient("left");
 
-    // Define main svg element in #graph
     var svg = d3.select("#graph").append("svg")
         .attr("width", main_width + main_margin.left + main_margin.right)
         .attr("height", main_height + main_margin.top + main_margin.bottom);
@@ -84,7 +80,6 @@ function draw_snp_bar_chart(strain, data, coverage) {
     var mini = svg.append("g")
         .attr("transform", "translate(" + mini_margin.left + "," + mini_margin.top + ")");
 
-    // Create brush for mini graph
     var brush = d3.svg.brush()
         .x(mini_x0)
         .on("brushend", brushed);
@@ -133,7 +128,7 @@ function draw_snp_bar_chart(strain, data, coverage) {
         });
 
     // Coverage bar
-    var coverage = main.selectAll(".coverage")
+    var coverage = snpClass.selectAll(".coverage")
         .data(data['coverage'])
         .enter().append("rect")
         .attr("x", function(d) { return main_x0(d.x); })
@@ -142,6 +137,7 @@ function draw_snp_bar_chart(strain, data, coverage) {
         .attr("height", 10)
         .style("fill", function(d, i) { return c(d.coverage); });
 
+    // Clip dimensions
     var clip = snpClass.append("defs").append("svg:clipPath")
         .attr("id", "clip")
         .append("svg:rect")
@@ -151,9 +147,10 @@ function draw_snp_bar_chart(strain, data, coverage) {
         .attr("width", main_width)
         .attr("height", main_height + mini_margin.top + main_margin.top);
 
-    // Clip
+    // Clip graph
     snpClass.attr("clip-path", "url(#clip)");
 
+    // Set the positions of each stacked bar
     rect.transition()
         .delay(10)
         .attr("y", function(d) { if (isNaN(main_y(d.y0 + d.y))) { console.log(d.y0); console.log(d.y); console.log(d.x); } return main_y(d.y0 + d.y); })
@@ -165,6 +162,7 @@ function draw_snp_bar_chart(strain, data, coverage) {
         .attr("transform", "translate(0," + mini_height + ")")
         .call(mini_xAxis);
 
+    // Add brush element to mini graph
     mini.append("g")
         .attr("class", "x brush")
         .call(brush)
@@ -193,7 +191,7 @@ function draw_snp_bar_chart(strain, data, coverage) {
         .attr("y", function(d) { return mini_y(d.y0 + d.y); })
         .attr("height", function(d) { return mini_y(d.y0) - mini_y(d.y0 + d.y); });
 
-    // Legend
+    // Legend for stacked bars
     var legend = svg.selectAll(".legend")
         .data(color.domain().slice().reverse())
         .enter().append("g")
@@ -233,10 +231,11 @@ function draw_snp_bar_chart(strain, data, coverage) {
 
         brushrange = p[1] - p[0];
 
+        // Draw labels only if brush dimensions are less than 15
         if (brushrange == 0 || brushrange > 15) 
             main_xAxis.tickFormat(function(d) { return ''; });
         else
-            main_xAxis.tickFormat(function(d) { return d; }); // Draw labels
+            main_xAxis.tickFormat(function(d) { return d; }); 
 
         // Redraw bars, x axis and reclip graph
         rect
@@ -264,6 +263,9 @@ function draw_snp_bar_chart(strain, data, coverage) {
         snpClass.attr("clip-path", "url(#clip)");
     } 
 
+    /*
+     * Highlights a bar if it has been selected, and loads raw variance information
+     */
     function bar_select(locus) {
         var notSelected = rect.filter(function(b) {
             return b.x != locus;
@@ -315,9 +317,6 @@ function draw_snp_bar_chart(strain, data, coverage) {
                     return main_y(d.y0);  
             }) 
             .style("text-anchor", "middle")
-            /*.attr("transform", function(d) {
-                return "rotate(-10)";
-            }) */
             .text(function(d) {
                 return Number((d.y).toFixed(3));
             });
@@ -326,6 +325,9 @@ function draw_snp_bar_chart(strain, data, coverage) {
         notSelected.style("fill-opacity", "0.5");
     }
 
+    /*
+     * Generates and sets the html to display raw variance information
+     */
     function write_table(data) {
         headings = ["StrainID", "Position", "RefBase", "ChangeBase", "ChangeAA", "Class", "SubClass"];
         html = "<h2>" + data[0]['LocusTag'] + " : " + data[0]['Product'] + "</h2>";
@@ -346,6 +348,11 @@ function draw_snp_bar_chart(strain, data, coverage) {
         $("#table").html(html)
     }
 
+    /*
+     * Generates a select box with the avaialble locus information
+     * Sets the behavior to pan visualisation when an option is selected
+     * Uses select2 for easy searches
+     */
     function draw_select_box(data) {
         // Select box here
         var select_contents = "";
@@ -357,6 +364,7 @@ function draw_snp_bar_chart(strain, data, coverage) {
         var jump = "Jump to: <select id='jump'>" + select_contents + "</select>";
         var html = jump;
         $("#header").html(html);
+        $("#jump").select2({ width: '50%' });
         $("#jump").change(function() {
             var selected_jump = $("#jump>option:selected").html();
             var index = loci_indexes[selected_jump];
@@ -375,7 +383,12 @@ function draw_snp_bar_chart(strain, data, coverage) {
     }
 }
 
-/* Uses bio.js sequence to display the raw sequence information */
+
+/*
+* Uses bio.js sequence to display the raw sequence information
+* Uses raw variance information to regenerate new sequence with snps & indels 
+* included and displayed
+*/
 function draw_sequence(snps, seq_info) {
     $('#seq_info').html("");
     var annotations = [];
@@ -389,7 +402,7 @@ function draw_sequence(snps, seq_info) {
 
     substitutions = 0;
 
-    /* Modify the reference sequence with reported SNPs */
+    // Modify the reference sequence with reported SNPs
     for (var i=0; i < seq_info['sequence'].length; i++) {
         if (snpid < snps.length) {
             if (i == snps[snpid].CDSBaseNum) {
@@ -420,7 +433,8 @@ function draw_sequence(snps, seq_info) {
             }
         }
     }
-    
+  
+    // Use Bio.js to display the sequence
     var locusSequence = new Biojs.Sequence({
         sequence: newSequence,
         target: "seq_info",
