@@ -19,7 +19,7 @@ def get_product_by_keyword(keyword=None):
     :param keyword: string containing a keyword relating to gene function e.g.
                     "metabolism"
 
-    :returns: TODO
+    :returns: 
     """
     with database.make_connection() as connection:
         if keyword is None:
@@ -151,20 +151,26 @@ def get_loci_snp_stats(strains):
 
     # Eventually this should actually have parameters
     coverage = get_coverage_statistics(strains[0], [])
-    return layers
     return {'coverage': coverage, 'layers': layers}
 
 
 def get_coverage_statistics(strain, loci):
     """
-    Get the coverage statistics for the specified strain
+    Get the coverage statistics for the specified strain. If any loci are
+    specified, return coverage statistics for those loci only, otherwise return
+    coverage statistics for all loci.
 
     .. note:: To save space, BanzaiDB only records unusual coverage statistics
         Entries that don't exist have a coverage of 1.0
+        Entries are generated with a coverage of 1.0 if no coverage field is
+        recorded in the strain_features table
 
-    :param strain: TODO
+    :param strain: string containing strain id
+    :param loci: list containing loci of interest. An empty list will return
+        all coverage values in all loci
 
-    :returns: TODO
+    :returns: Coverage statistics as a python dictionary in the format:
+        [{ 'x': LOCUS_TAG, 'coverage': FLOAT }]
     """
 
     headers = ['LocusTag', 'coverage']
@@ -250,7 +256,7 @@ def strain_loci_by_keyword(products):
 
 # CHANGE THIS
 # SEPARATE FUNCTION FOR STRAIN/LOCUS INFORMATION
-# SEPARATE FUNCTION FOR REFERENCE DETAILS!!!!!
+# SEPARATE FUNCTION FOR REFERENCE DETAILS!
 def get_locus_details(strain, locus):
     """
     Get sequence & SNP info about the specified locus in the specified strain
@@ -259,7 +265,7 @@ def get_locus_details(strain, locus):
 
     :param locus: a string containing the locus of interest e.g. "ECSF_0041"
 
-    :returns: a dictionary containing the snps and the reference sequence data
+    :returns: a dictionary containing SNP data for the specified strain and locus 
     """
     with database.make_connection() as connection:
         snps = list(r.table('determined_variants')
@@ -268,22 +274,22 @@ def get_locus_details(strain, locus):
                      .has_fields('LocusTag')
                      .order_by('CDSBaseNum')
                      .run(connection))
-        seq_info = list(r.table('reference_features')
-                         .filter({'locus_tag': locus})
-                         .run(connection))
-
-        return snps
-        result = {'snps': snps, 'seq_info': seq_info}
-    return result
+    return snps
 
 
 def get_reference_features(locus):
     """
     Get reference features for the specified locustag
+
+    :param locus: a string containing the locus of interest e.g. "ECSF_0041"
+    
+    :returns: a dictionary containing reference feature data
     """
-    seq_info = list(r.table('reference_features')
-                    .filter({'locus_tag': locus})
-                    .run(connection))
+    with database.make_connection() as connection:
+        seq_info = list(r.table('reference_features')
+                        .filter({'locus_tag': locus})
+                        .run(connection))
+
     return seq_info    
 
 

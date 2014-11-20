@@ -153,7 +153,7 @@ function draw_snp_bar_chart(strain, data, coverage) {
     // Set the positions of each stacked bar
     rect.transition()
         .delay(10)
-        .attr("y", function(d) { if (isNaN(main_y(d.y0 + d.y))) { console.log(d.y0); console.log(d.y); console.log(d.x); } return main_y(d.y0 + d.y); })
+        .attr("y", function(d) { return main_y(d.y0 + d.y); })
         .attr("height", function(d) { return main_y(d.y0) - main_y(d.y0 + d.y); });
 
     // Add the mini x axis
@@ -275,21 +275,28 @@ function draw_snp_bar_chart(strain, data, coverage) {
             return b.x == locus;
         });
 
+        var snps;
+        var seq_info;
+
         notSelected.style("fill-opacity", "0.5");
         selected.style("fill-opacity", "1");
         
         $("#locus_load").show();
         $.getJSON('/variants/locus', {
             locus: locus, sid: strain
-        }, function(r) {
-            draw_sequence(r.snps, r.seq_info[0]);
-            if (r.snps.length > 0)
-                write_table(r.snps);
-            else
-                $("#table").html("");
-            $("#locus_load").hide();
+        }, function(snps) {
+            $.getJSON('/reference/locus', {
+                locus: locus
+            }, function(seq_info) {
+                console.log(seq_info);
+                draw_sequence(snps, seq_info[0]);
+                if (snps.length > 0)
+                    write_table(snps);
+                else
+                    $("#table").html("");
+            });
         });
-
+        $("#locus_load").hide();
     }
 
     function highlight_class(data) {
@@ -423,7 +430,7 @@ function draw_sequence(snps, seq_info) {
                         color: "black",
                         background: "yellow",
                     });
-                    offset += snps[snpid].ChangeBase.length;
+                    offset += snps[snpid].ChangeBase.length - 1;
                 } else if (snps[snpid].Class == "deletion") {
                     offset -= snps[snpid].RefBase.length; 
                 }
