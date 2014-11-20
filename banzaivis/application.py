@@ -78,6 +78,7 @@ class ProductByKeyword(Resource):
 
     def get(self):
         args = self.reqparse.parse_args()
+        print args
         return web_queries.get_product_by_keyword(args['keyword'])
 
 

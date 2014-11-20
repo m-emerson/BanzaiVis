@@ -3,6 +3,7 @@ BanzaiVis
 
 Visualise results from BanzaiDB
 
+.. image:: screenshot.png
 
 Install
 -------
@@ -55,4 +56,9 @@ Usage instructions::
     optional arguments:
       -?, --help            show this help message and exit
 
+API Reference
+-------------
+See `wiki`_.
+
 .. _BanzaiDB documentation: http://banzaidb.readthedocs.org
+.. _wiki: https://github.com/m-emerson/BanzaiVis/wiki/API-Reference

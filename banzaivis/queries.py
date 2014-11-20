@@ -24,16 +24,15 @@ def get_product_by_keyword(keyword=None):
     with database.make_connection() as connection:
         if keyword is None:
             cursor = list(r.table('reference_features')\
-                      .pluck('Product')\
+                      .pluck('product')\
                       .distinct()\
                       .run(connection))
         else:
             cursor = list(r.table('reference_features')\
-                      .filter(lambda row: row['Product'].match(keyword))\
-                      .pluck('Product')\
+                      .filter(lambda row: row['product'].match(keyword))\
+                      .pluck('product')\
                       .distinct()\
                       .run(connection))
-        print cursor
         return cursor
 
 
@@ -152,6 +151,7 @@ def get_loci_snp_stats(strains):
 
     # Eventually this should actually have parameters
     coverage = get_coverage_statistics(strains[0], [])
+    return layers
     return {'coverage': coverage, 'layers': layers}
 
 
@@ -247,6 +247,10 @@ def strain_loci_by_keyword(products):
     return heatmap_parsed
 
 
+
+# CHANGE THIS
+# SEPARATE FUNCTION FOR STRAIN/LOCUS INFORMATION
+# SEPARATE FUNCTION FOR REFERENCE DETAILS!!!!!
 def get_locus_details(strain, locus):
     """
     Get sequence & SNP info about the specified locus in the specified strain
@@ -267,6 +271,8 @@ def get_locus_details(strain, locus):
         seq_info = list(r.table('reference_features')
                          .filter({'locus_tag': locus})
                          .run(connection))
+
+        return snps
         result = {'snps': snps, 'seq_info': seq_info}
     return result
 
