@@ -19,7 +19,7 @@ def get_product_by_keyword(keyword=None):
     :param keyword: string containing a keyword relating to gene function e.g.
                     "metabolism"
 
-    :returns: 
+    :returns: list of found product names matching specified keyword
     """
     with database.make_connection() as connection:
         if keyword is None:
@@ -100,7 +100,7 @@ def get_loci_snp_stats(strains):
             tagList.append(tag['locus_tag'])
         filter_by = {'Class': ['insertion', 'deletion'],
                      'SubClass': ['synonymous', 'non-synonymous']}
-        # Insertions and deletions
+
         for k, v in filter_by.items():
             for filterClass in v:
                 locus_snps = list(r.table('determined_variants')
@@ -112,6 +112,7 @@ def get_loci_snp_stats(strains):
                                    .order_by(r.row["group"])
                                    .run(connection))
                 lociStats[filterClass] = locus_snps
+
         # find locus information via ref_feat table and determine frequency
         for k in lociStats:
             for locus in lociStats[k]:
@@ -219,15 +220,15 @@ def get_coverage_statistics(strain, loci):
 
 def strain_loci_by_keyword(products):
     """
-    Takes a list of product strings, returns details about the strains
+    Takes a list of product strings, returns details about snps within each
+    strain for loci related to those gene products
+    
+    :param products: list of product strings
+        e.g ["putative transport protein", "hypothetical protein"]
 
-    Returns a list in a format compatible with a d3.js heatmap
+    :returns: a list of dictionaries containing the snp count at each strain and locus
+        e.g [{'count': 7, 'strain': u'S92EC', 'locus': u'ECSF_4143'}]
 
-    A list of dictionaries containing strainid, key and locus id
-
-    :param products: TODO
-
-    :returns: TODO
     """
     headers = ['StrainID', 'LocusTag', 'Product']
     with database.make_connection() as connection:
@@ -246,17 +247,16 @@ def strain_loci_by_keyword(products):
                 sp[snp['StrainID']][snp['LocusTag']] = {'count': 1, 'product': snp['Product']}
         else:
             sp[snp['StrainID']] = {snp['LocusTag']: {'count': 1, 'product': snp['Product']}}
+
     heatmap_parsed = []
+
     for key in sp:
         for loci in sp[key]:
             heatmap_parsed.append({'strain': key, 'locus': loci, 'count': sp[key][loci]['count']})
+
     return heatmap_parsed
 
 
-
-# CHANGE THIS
-# SEPARATE FUNCTION FOR STRAIN/LOCUS INFORMATION
-# SEPARATE FUNCTION FOR REFERENCE DETAILS!
 def get_locus_details(strain, locus):
     """
     Get sequence & SNP info about the specified locus in the specified strain
@@ -293,18 +293,3 @@ def get_reference_features(locus):
     return seq_info    
 
 
-def get_distinct_loci(query):
-    """
-    TODO: Document me
-
-    :param query: TODO
-
-    :returns: TODO
-    """
-    with database.make_connection() as connection:
-        selection = list(r.table('nesoni_report')
-                          .filter(r.row['LocusTag'].match("^" + query))
-                          .pluck('LocusTag')
-                          .distinct()
-                          .run(connection))
-    return selection
